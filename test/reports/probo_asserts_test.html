@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Test Report</title>
+    <style>
+        table { border-collapse: collapse; border: 1px solid black; width: 800px; }
+        /*.table header cells */
+        table thead td { background-color: silver; padding-left: 3px }
+        /*.table header cells */
+        table tbody td { padding-left: 3px; }
+        /* Result colors */
+        .test-passed { background-color: green; }
+        .test-skipped { background-color: white; }
+        .test-failed { background-color: red; }
+        .describe-cell { background-color: tan; font-style: italic; }
+        .rerun-cell { background-color: lightgoldenrodyellow; font-style: italic; }
+    </style>
+</head>
+<body>
+<table class="test-report">
+    <thead>
+    <tr class="header-row">
+        <td>Test Suite</td>
+        <td>Test Case</td>
+        <td>Result</td>
+    </tr>
+    </thead>
+    <tbody>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Condition failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Condition passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Condition with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:CreatesError failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:CreatesError passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:CreatesNoError failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:CreatesNoError passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Equal failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Equal passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Equal with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Fail
+        </td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Fail with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:False failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:False passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:False with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Invokable failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Invokable passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Invokable with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Nil failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Nil passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Nil with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:NotEqual failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:NotEqual passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:NotEqual with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:NotNil failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:NotNil passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:NotNil with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableEmpty failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableEmpty passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableEmpty with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableEqual failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableEqual passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableEqual with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableHasSameKeys failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableHasSameKeys passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableHasSameKeys with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableNotEmpty failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableNotEmpty passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:TableNotEmpty with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:True failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:True passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:True with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Type failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Type passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_asserts_test</td>
+        <td class="step-cell test-case-name">Assert:Type with custom message</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    </tbody>
+</table>
+<div class="test-run-info">
+    <div class="total-tests">Total tests 45.0</div>
+    <div class="total-passed">Total passed 45.0</div>
+    <div class="total-failed">Total failed 0.0</div>
+</div>
+</body>
+</html>
