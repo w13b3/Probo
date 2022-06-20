@@ -117,13 +117,13 @@ local function CreateTestStepResults(runInfo)
     end
 
     if runInfo.options and runInfo.options.rerunFailedTests then
-        if next(runInfo.reRunInfo.failedTests) ~= nil or next(runInfo.reRunInfo.passedTests) ~= nil then
-            local reRunRow = ([[
+        if next(runInfo.rerunInfo.failedTests) ~= nil or next(runInfo.rerunInfo.passedTests) ~= nil then
+            local rerunRow = ([[
                 <tr class="step-row rerun-row"> <!-- Rerun row -->
                 <td class="rerun-cell" colspan="3">Reruns</td>
                 </tr>]])
-            result = result .. reRunRow
-            result = result .. CreateTestStepResults(runInfo.reRunInfo)
+            result = result .. rerunRow
+            result = result .. CreateTestStepResults(runInfo.rerunInfo)
         end
     end
     return result
