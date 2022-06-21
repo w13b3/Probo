@@ -471,10 +471,10 @@ local function doRun(self, options, runInfo)
             runInfo.failedTests[testName] = message or ("%s failed"):format(testName)
             self.FailedHook(self, options, "FailedHook")
         end
-        self.TearDown(self, options, "TearDown")
+        self.Teardown(self, options, "Teardown")
         if not success and options.stopOnFail then break end
     end
-    self.SuiteTearDown(self, options, "SuiteTearDown")
+    self.SuiteTeardown(self, options, "SuiteTeardown")
 end
 
 
@@ -577,9 +577,9 @@ function Suite.New(suiteName)
         --__call = ,
         --[[ Test hooks ]]
         SuiteSetup    = _SuiteHook,
-        SuiteTearDown = _SuiteHook,
+        SuiteTeardown = _SuiteHook,
         Setup         = _SuiteHook,
-        TearDown      = _SuiteHook,
+        Teardown      = _SuiteHook,
         PassedHook    = _SuiteHook,
         FailedHook    = _SuiteHook,
         definedTests = {},
