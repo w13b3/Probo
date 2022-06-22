@@ -11,15 +11,14 @@ local Assert = {
     attemptsSuccess = 0,
     attemptsFailed = 0,
 }
+Assert.__index = Assert
 
 
----@public
----@return table Assert instance
-function Assert:New()
-    local MetaAssert = {
-        __index = self
+function Assert.New()
+    local instance = {
+        -- keys here overwrites the keys in `Assert`
     }
-    return setmetatable(self, MetaAssert)
+    return setmetatable(instance, Assert)
 end
 
 
@@ -417,21 +416,21 @@ end
 ---Place newly created test function in a separate table
 ---@private
 ---@return nil
-local function NewDefinedTests(suiteTable, key, value)
+local function NewDefinedTests(self, key, value)
     if type(value) == "function" then
         -- assure the test function is not already defined
-        if suiteTable.definedTests[key] ~= nil then
+        if self.definedTests[key] ~= nil then
             local message = (
                     "Test '%s' in %s is previously defined"
-            ):format(key, suiteTable.name or "the test suite")
+            ):format(key, self.name or "the test suite")
             error(message, 2)
         end
         -- key is the `testName` value is the `testFunc`
         -- place it in a separate table
-        suiteTable.definedTests[key] = value
+        self.definedTests[key] = value
     else
         -- ignore __newindex
-        rawset(suiteTable, key, value)
+        rawset(self, key, value)
     end
 end
 
@@ -454,14 +453,26 @@ end
 ---@param self table the table of the defined test suite
 ---@param options table the options table
 ---@param runInfo table the runInfoTable
-local function doRun(self, options, runInfo)
+local function DoRun(self, options, runInfo)
+    local testNames = {}
+    for testName in pairs(runInfo.definedTests) do
+        table.insert(testNames, testName)
+    end
+
+    if options.sortedByName then
+        table.sort(testNames)
+    end
+
     self.SuiteSetup(self, options, "SuiteSetup")
-    for testName, testFunc in pairs(runInfo.definedTests) do
+    for _, testName in ipairs(testNames) do
+        local testFunc = runInfo.definedTests[testName]
+
         self.Setup(self, options, "Setup")
         -- pcall returns the message from `error` in `Assert:AttemptFailed`
         local success, message = pcall(testFunc)
         table.insert(runInfo.executedTests, testName)
         runInfo.amountExecuted = (runInfo.amountExecuted + 1)
+
         if success then
             runInfo.amountPassed = (runInfo.amountPassed + 1)
             runInfo.passedTests[testName] = message or ("%s passed"):format(testName)
@@ -471,6 +482,7 @@ local function doRun(self, options, runInfo)
             runInfo.failedTests[testName] = message or ("%s failed"):format(testName)
             self.FailedHook(self, options, "FailedHook")
         end
+
         self.Teardown(self, options, "Teardown")
         if not success and options.stopOnFail then break end
     end
@@ -478,22 +490,11 @@ local function doRun(self, options, runInfo)
 end
 
 
--- Test suite table
-local Suite = {
-    __index = Assert,
-    __newindex = NewDefinedTests,
-    -- if `<close>` is defined, __close is called at the end of the 'do ... end' structure
-    __close = (function(self)
-        collectgarbage()
-    end)
-}
-
-
 ---Run the tests that are defined in the test suite
 ---@public
 ---@param options table
 ---@return table information about the test run
-function Suite:Run(options)
+local function Run(self, options)
     options = options or self.defaultOptions or {}
 
     local runInfo = {}
@@ -514,7 +515,7 @@ function Suite:Run(options)
     runInfo.startTime = os.time(os.date("!*t"))
     local clockStart = os.clock()
 
-    doRun(self, options, runInfo)  -- mutates runInfo
+    DoRun(self, options, runInfo)  -- mutates runInfo
 
     if options.rerunFailedTests then
         local rerunInfo = {}
@@ -532,7 +533,7 @@ function Suite:Run(options)
                 rerunInfo.definedTests[testName] = testFunc
             end
         end
-        doRun(self, options, rerunInfo)  -- mutates rerunInfo
+        DoRun(self, options, rerunInfo)  -- mutates rerunInfo
         runInfo.rerunInfo = rerunInfo
     end
 
@@ -563,36 +564,43 @@ function Suite:Run(options)
 end
 
 
+local Suite = {
+    -- if `<close>` is defined, __close is called at the end of the 'do-end' scope
+    __close = (function() collectgarbage() end),
+    __call = SetName,
+    __newindex = NewDefinedTests,
+
+}
+Suite.__index = Suite
+Suite = setmetatable(Suite, Assert)  -- inherit from Assert
+
+
 ---Create a new instance of a test suite
----@param name string name of the test suite
+---@param suiteName string name of the test suite
 ---@return table new test suite instance
 function Suite.New(suiteName)
-    if type(suiteName) == "table" then
-        error("Suite.New probably called with a ':', use a single point '.'", 2)
-    end
-    local _SuiteHook = (function(self, options, hookName) end)
-    local MetaSuite = {
-        suiteName = suiteName or "Test suite",
-        Run = Suite.Run,
-        --__call = ,
+    local SuiteHook = function() end
+    local instance = {
+        suiteName = suiteName or "Probo Suite",
+        definedTests = {},  -- table containing the testcases defined in the suite
         --[[ Test hooks ]]
-        SuiteSetup    = _SuiteHook,
-        SuiteTeardown = _SuiteHook,
-        Setup         = _SuiteHook,
-        Teardown      = _SuiteHook,
-        PassedHook    = _SuiteHook,
-        FailedHook    = _SuiteHook,
-        definedTests = {},
+        SuiteSetup    = SuiteHook,  -- before all the tests
+        SuiteTeardown = SuiteHook,  -- after all the tests
+        Setup         = SuiteHook,  -- before every tests
+        Teardown      = SuiteHook,  -- after all the tests
+        PassedHook    = SuiteHook,  -- after a test has passed
+        FailedHook    = SuiteHook,  -- after a test has failed
+        --[[ Suite runner ]]
+        Run = Run,
         --[[ default Run options ]]
         defaultOptions  = {
-            stopOnFail       = false,
-            silent           = false,
-            rerunFailedTests = false,
+            stopOnFail       = false,  -- stop the tests after the first failure
+            silent           = false,  -- no output during tests
+            rerunFailedTests = false,  -- rerun the failed tests if failures has happened
+            sortedByName     = false   -- sorts the tests by name before the run of the tests
         },
     }
-    MetaSuite.__index = MetaSuite
-    Suite.__call = SetName
-    return setmetatable(MetaSuite, Suite)
+    return setmetatable(instance, Suite)
 end
 
 
@@ -603,7 +611,7 @@ end
     do
         -- create a new test suite instance
         -- with <close> defined a garbage-collection cycle is performed at the end this scope
-        local test <close> = Suite.New("Probo test suite")
+        local test <close> = Suite.New("Probo Suite example")
         local assert = test -- more readable separation between tests and asserts
 
         test.run = 1                        -- test suite variable
@@ -612,8 +620,9 @@ end
             assert:Invokable(test)          -- multiple different asserts are available
         end
 
-        test([[Always Fails]])(function()   -- test is a decorator
-            assert:Fail()                   -- with this the name of the test can have spaces
+        test([[Always Fails]])              -- test is a decorator
+        (function()                         -- with the decorator the name of the test can have spaces
+            assert:Fail()
         end)
 
         function test.FlakyTest()           -- failed tests in the first run can be rerun
@@ -624,7 +633,8 @@ end
         local suiteOptions = {              -- a table with options
             stopOnFail       = false,
             silent           = false,
-            rerunFailedTests = true
+            rerunFailedTests = true,
+            sortedByName     = false
         }
 
         -- run the above defined tests with the given options
@@ -636,7 +646,7 @@ end
 --[=[
     -- `runInfo` structure after test:Run
     runInfo = {
-        suiteName = "Probo test suite",
+        suiteName = "Probo Suite example",
         runSuccess = false,
         startTime = 725893261,
         endTime = 725893265,
@@ -660,7 +670,8 @@ end
         options = {
             rerunFailedTests = true,
             silent = false,
-            stopOnFail = false
+            stopOnFail = false,
+            sortedByName = false
         },
         passedTests = {
             AlwaysPasses = "AlwaysPasses passed"
