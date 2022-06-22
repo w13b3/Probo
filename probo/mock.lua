@@ -13,6 +13,7 @@ local function SplitName(mockFuncName)
     return nameParts
 end
 
+
 ---@private
 local function TableTrace(tbl, nameParts, valueOverwrite, idx)
     idx = idx or 1
@@ -30,6 +31,7 @@ local function TableTrace(tbl, nameParts, valueOverwrite, idx)
     return resultTable, originalValue
 end
 
+
 ---@private
 local function Merge(tbl1, tbl2)
     tbl2 = tbl2 or {}
@@ -45,6 +47,7 @@ local function Merge(tbl1, tbl2)
     return tbl1
 end
 
+
 ---@private
 local function CountCalls(self, replacementFunc, mockFuncName)
     local function InnerFunc(...)
@@ -55,10 +58,12 @@ local function CountCalls(self, replacementFunc, mockFuncName)
     return InnerFunc
 end
 
+
 ---@private
 local function Inspect(self, mockFuncName)
     return self.mockInfo[mockFuncName] or {}
 end
+
 
 ---@private
 local function Create(self, mockFuncName, replacementFunc)
@@ -91,6 +96,7 @@ local function Reset(self, mockFuncName)
     Merge(_G, original_GfuncPath)  -- overwrite the Global function
 end
 
+
 ---@private
 local function Close(self)
     for mockFuncName, _ in pairs(self.mockInfo) do
@@ -106,8 +112,9 @@ local MetaMock = {
     __close = Close   -- release mocks with <close> at end of do-end
 }
 
+
 ---@public
-function Mock:New()
+function Mock.New()
     local object = {
         -- each instance an own object-table
         mockFuncTable = {},
@@ -116,16 +123,14 @@ function Mock:New()
         Inspect = Inspect,
         Reset = Reset
     }
-    for key, value in pairs(self or {}) do
-        object[key] = value
-    end
     return setmetatable(object, MetaMock)
 end
+
 
 --[=[
     -- Mock example
     do
-        local mock <close> = Mock:New()
+        local mock <close> = Mock.New()
         mock("string.reverse", function(input) return input end)
         mock("print", function(...) return { ... } end)
 
@@ -149,4 +154,6 @@ end
     print("print un-mocked")
 ]=]
 
+
+--[[ make `Mock` available when this file is imported with require ]]
 return Mock
