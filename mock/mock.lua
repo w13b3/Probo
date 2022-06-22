@@ -4,68 +4,149 @@
 
 --[=[ Mock ]=]
 
----usage: `mock:reset("mockFuncName")`
----@param mockFuncName string mocked function to un-mock
-local function reset(self, mockFuncName)
-    local _Gfunc = self.mockFuncTable[mockFuncName]
-    if _Gfunc ~= nil and type(_Gfunc) == "function" then
-        _G[mockFuncName] = _Gfunc
+---@private
+local function SplitName(mockFuncName)
+    local nameParts = {}
+    for namePart in string.gmatch(mockFuncName, "[^.]+") do  -- split on dot (.)
+        table.insert(nameParts, namePart)
+    end
+    return nameParts
+end
+
+---@private
+local function TableTrace(tbl, nameParts, valueOverwrite, idx)
+    idx = idx or 1
+    local namePart = nameParts[idx]
+    local resultTable = {}
+    local originalValue
+    for key, value in pairs(tbl) do
+        if key == namePart and type(value) == "table" then
+            resultTable[key], originalValue = TableTrace(value, nameParts, valueOverwrite, idx + 1)  -- recursive
+        elseif key == namePart then
+            resultTable[key] = valueOverwrite or value
+            originalValue = value
+        end
+    end
+    return resultTable, originalValue
+end
+
+---@private
+local function Merge(tbl1, tbl2)
+    tbl2 = tbl2 or {}
+    if type(tbl1) == 'table' and type(tbl2) == 'table' then
+        for key, value in pairs(tbl2) do
+            if type(value) == 'table' and type(tbl1[key]) == 'table' then
+                Merge(tbl1[key], value)
+            else
+                tbl1[key] = value
+            end
+        end
+    end
+    return tbl1
+end
+
+---@private
+local function CountCalls(self, replacementFunc, mockFuncName)
+    local function InnerFunc(...)
+        local current = self.mockInfo[mockFuncName].timesCalled
+        self.mockInfo[mockFuncName].timesCalled = current + 1
+        return replacementFunc(...)
+    end
+    return InnerFunc
+end
+
+---@private
+local function Inspect(self, mockFuncName)
+    return self.mockInfo[mockFuncName] or {}
+end
+
+---@private
+local function Create(self, mockFuncName, replacementFunc)
+    assert(type(mockFuncName) == "string" and type(replacementFunc) == "function")
+    local nameParts = SplitName(mockFuncName)  -- split the name into a table
+    local _GfuncPath, _Gfunc = TableTrace(_G, nameParts)  -- get the path to the Global function
+    if _Gfunc == nil then
+        return error("could not find the global function", 2)
+    end
+
+    Merge(self.mockFuncTable, _GfuncPath)  -- save the Global function to the `mockFuncTable`
+    -- add the info to the `mockInfo` table
+    self.mockInfo[mockFuncName] = {
+        timesCalled = 0,
+        replacementFunc = replacementFunc,
+        originalFunc = _Gfunc,
+    }
+    -- replace the Global function in the path (sub-step to replace)
+    local wrapFunc = CountCalls(self, replacementFunc, mockFuncName)
+    local replaced_GfuncPath = TableTrace(_GfuncPath, nameParts, wrapFunc)
+    Merge(_G, replaced_GfuncPath)  -- overwrite the Global function
+end
+
+
+---@private
+local function Reset(self, mockFuncName)
+    local nameParts = SplitName(mockFuncName)  -- split the name into a table
+    -- get the path to the Global function
+    local original_GfuncPath = TableTrace(self.mockFuncTable, nameParts)
+    Merge(_G, original_GfuncPath)  -- overwrite the Global function
+end
+
+---@private
+local function Close(self)
+    for mockFuncName, _ in pairs(self.mockInfo) do
+        self:Reset(mockFuncName)
     end
 end
 
 
-local function Mock()
-    local _Mock = {  --[[ Table ]]
-        mockFuncTable = {},
-        reset = reset,  -- mock:reset function
-    }
-    local _MetaMock = { --[[ MetaTable ]]
-        --Todo: create functionality so functions in nested tables can be mocked. like: string.reverse
-        __call = (function(self, mockFuncName, replacementFunc)
-            -- check if the given parameters are correct
-            assert(type(mockFuncName) == "string", type(replacementFunc) == "function")
-            local _Gfunc = _G[mockFuncName]
-            -- check if the given name is a global function
-            assert(_Gfunc ~= nil, ("'%s' is not a global function"):format(mockFuncName))
-            -- add the function to the table, so it can be reset to original
-            self.mockFuncTable[mockFuncName] = _Gfunc
-            _G[mockFuncName] = replacementFunc
-        end),
-        -- if `<close>` is defined, un-mock all the mocked functions after the do-end scope
-        __close = (function(self)
-            for mockFuncName, _Gfunc in pairs(self.mockFuncTable) do
-                _G[mockFuncName] = _Gfunc
-            end
-        end)
-    }
-    return setmetatable(_Mock, _MetaMock)
-end
+local Mock = {}
+local MetaMock = {
+    __index = Mock,
+    __call = Create,  -- create by mock()
+    __close = Close   -- release mocks with <close> at end of do-end
+}
 
+---@public
+function Mock:New()
+    local object = {
+        -- each instance an own object-table
+        mockFuncTable = {},
+        mockInfo = {},
+        Create = Create,
+        Inspect = Inspect,
+        Reset = Reset
+    }
+    for key, value in pairs(self or {}) do
+        object[key] = value
+    end
+    return setmetatable(object, MetaMock)
+end
 
 --[=[
-    -- Mock example:
+    -- Mock example
+    do
+        local mock <close> = Mock:New()
+        mock("string.reverse", function(input) return input end)
+        mock("print", function(...) return { ... } end)
 
-    -- create, or load in, a global function
-    function returnString(input)
-        return tostring(input)
+        -- test 1
+        local given = "abc"
+        local actual = string.reverse(given)
+        assert(actual == given)
+
+        -- reset the mock
+        mock:Reset("string.reverse")
+
+        -- test 2
+        local expected = "cba"
+        actual = string.reverse(given)
+        assert(actual == expected)
+
+        print("No output")  -- check the console for this output
     end
 
-
-    do  -- all mocked functions between the do-end are reset at the end when using <close>
-        local mock <close> = Mock()
-
-        -- give the name of the function to mock as a string
-        -- the given new function replaces the function to mock
-        mock('returnString', function(input) return string.reverse(tostring(input)) end)
-
-        -- use the function, perhaps in a test to control a certain state
-        print(returnString("Reversed")) -- >stdout: desreveR
-    end
-
-    -- mocked functions are reset to their original
-    print(returnString("Not reversed")) --> stdout: Not reversed
-
+    -- after do-end <close> resets all the mocked functions
+    print("print un-mocked")
 ]=]
 
-
-return Mock()
+return Mock
