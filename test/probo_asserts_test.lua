@@ -26,8 +26,8 @@
 -- extend `package.path` so it can look in the parent directory (where probo.lua resides)
 package.path = ("%s;../?.lua"):format(package.path)
 -- add probo.lua to the script as `Suite`
-local Suite = require("probo")
-local report = require("reporting/htmlreport")
+local Suite = require("probo/suite")
+local Report = require("probo/htmlreport")
 
 local combinedReport = {}
 local filename = "probo_asserts_test"      -- this file
@@ -56,7 +56,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:Condition")
-        local assert = test
+        local assert <const> = test
 
         test(([[%s passed]]):format(test.suiteName))
         (function()
@@ -81,7 +81,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:CreatesError ]]--
@@ -91,7 +91,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:CreatesError")
-        local assert = test
+        local assert <const> = test
 
         local throwError <const> = function(...) _error() end  -- unsuppressed
         local wontError <const> = function(...) end
@@ -115,7 +115,7 @@ do
 end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:CreatesNoError ]]--
@@ -125,7 +125,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:CreatesNoError")
-        local assert = test
+        local assert <const> = test
 
         local throwError <const> = function(...) _error() end  -- unsuppressed
         local wontError <const> = function(...) end
@@ -149,7 +149,7 @@ do
 end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Equal ]]--
@@ -159,7 +159,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:Equal")
-        local assert = test
+        local assert <const> = test
 
         local actual <const> = "actual"
         local expected <const> = "actual"
@@ -188,7 +188,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Fail ]]--
@@ -198,7 +198,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:Fail")
-        local assert = test
+        local assert <const> = test
 
         -- no need to test pass
 
@@ -219,7 +219,7 @@ end
 
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:False ]]--
@@ -229,7 +229,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:False")
-        local assert = test
+        local assert <const> = test
 
         test(([[%s passed]]):format(test.suiteName))
         (function()
@@ -254,7 +254,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Invokable ]]--
@@ -264,7 +264,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:Invokable")
-        local assert = test
+        local assert <const> = test
 
         local invokable <const> = function(...) end
         local notInvokable <const> = true
@@ -292,7 +292,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Nil ]]--
@@ -302,7 +302,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:Nil")
-        local assert = test
+        local assert <const> = test
 
         local notNil <const> = (not nil)  -- true
 
@@ -329,7 +329,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:NotEqual ]]--
@@ -339,7 +339,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:NotEqual")
-        local assert = test
+        local assert <const> = test
 
         local actual <const> = "actual"
         local expected <const> = "wrong"
@@ -368,7 +368,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:NotNil ]]--
@@ -378,7 +378,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:NotNil")
-        local assert = test
+        local assert <const> = test
 
         local notNil <const> = (not nil)  -- true
 
@@ -405,7 +405,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableEmpty ]]--
@@ -415,7 +415,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:TableEmpty")
-        local assert = test
+        local assert <const> = test
 
         local empty <const> = {}
         local notEmpty <const> = {not {}}  -- {false}
@@ -443,7 +443,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableEqual ]]--
@@ -453,7 +453,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:TableEqual")
-        local assert = test
+        local assert <const> = test
 
         local actual <const> = {["a"]="a", ["b"]="b", ["c"]={1, 2, 3}}
         local expected <const> = {["c"]={1, 2, 3}, ["a"]="a", ["b"]="b"}
@@ -482,7 +482,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableHasSameKeys ]]--
@@ -492,7 +492,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:TableHasSameKeys")
-        local assert = test
+        local assert <const> = test
 
         local same1 <const> = {["a"]=1, ["b"]=2, ["c"]=3}
         local same2 <const> = {["c"]=3, ["a"]=1, ["b"]=2, }
@@ -521,7 +521,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableNotEmpty ]]--
@@ -531,7 +531,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:TableNotEmpty")
-        local assert = test
+        local assert <const> = test
 
         local empty <const> = {}
         local notEmpty <const> = {not {}}  -- {false}
@@ -559,7 +559,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:True ]]--
@@ -569,7 +569,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:True")
-        local assert = test
+        local assert <const> = test
 
         test(([[%s passed]]):format(test.suiteName))
         (function()
@@ -594,7 +594,7 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
-combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Type ]]--
@@ -604,7 +604,7 @@ do
     local _ <close> = suppress()  -- do temporary mock `error` until end
     do
         local test <close> = Suite.New("Assert:Type")
-        local assert = test
+        local assert <const> = test
 
         local actual <const> = "actual"
         local expected <const> = "string"
@@ -633,17 +633,21 @@ end
 assert((pass == true), "test that should pass has failed")
 assert((type(failed) == "string"), "error has not been thrown")
 assert((customErrMsg == "errorMessage"), "error message has not been custom")
---combinedReport = report.CombineRunInfo(combinedReport, runInfo)
+--combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 -- create the last combinedReport with the filename as name
-combinedReport = report.CombineRunInfo(combinedReport, runInfo, filename)
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo, filename)
 
 if not silentTests then
     -- this wont print if any `assert` has been triggered
     io.write(("%s passed\n"):format(filename))
-    local htmlReport = report.Create(combinedReport)
-    print(htmlReport)
+    local htmlReport = Report.Create(combinedReport)
+
+    -- create a html report
+    local reportFile = io.open(("%s_report.html"):format(filename), "w")
+    reportFile:write(htmlReport)
+    reportFile:close()
 end
 
 return combinedReport, true
