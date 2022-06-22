@@ -102,9 +102,10 @@ end
 ---@return boolean
 function Assert:CreatesError(invokable, ...)
     self:Attempt()
-    if pcall(invokable, ...) then
+    local boolean = pcall(invokable, ...)
+    if boolean == true then
         local message = (
-                "Assert:CreatesError failed, %s creates an error"
+                "Assert:CreatesError failed, %s doesn't create error"
         ):format(tostring(invokable))
         return self:AttemptFailed(message)
     end
@@ -119,9 +120,10 @@ end
 ---@return boolean
 function Assert:CreatesNoError(invokable, ...)
     self:Attempt()
-    if not pcall(invokable, ...) then
+    local boolean = pcall(invokable, ...)
+    if boolean == false then
         local message = (
-                "Assert:CreatesNoError failed, %s creates no error"
+                "Assert:CreatesNoError failed, %s does create an error"
         ):format(tostring(invokable))
         return self:AttemptFailed(message)
     end
