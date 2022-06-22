@@ -123,6 +123,7 @@ local function CreateTestStepResults(runInfo)
                 <td class="rerun-cell" colspan="3">Reruns</td>
                 </tr>]])
             result = result .. rerunRow
+            runInfo.rerunInfo.suiteName = suiteName  -- set the suiteName for the recursive call
             result = result .. CreateTestStepResults(runInfo.rerunInfo)
         end
     end
@@ -157,10 +158,13 @@ end
 ---@return table the combined runInfo
 function report.CombineRunInfo(runInfo1, runInfo2, newName)
     newName = newName or "Combined info"
+    runInfo1 = runInfo1 or {}
+    runInfo2 = runInfo2 or {}
 
     runInfo1.rerunInfo = runInfo1.rerunInfo or {}
     runInfo2.rerunInfo = runInfo2.rerunInfo or {}
 
+    -- initial run
     local executedTests = {}
     for _, testName in ipairs(runInfo1.executedTests or {}) do
         table.insert(executedTests, testName)
@@ -169,28 +173,12 @@ function report.CombineRunInfo(runInfo1, runInfo2, newName)
         table.insert(executedTests, testName)
     end
 
-    local rerunExecutedTests = {}
-    for _, testName in ipairs(runInfo1.rerunInfo.executedTests or {}) do
-        table.insert(rerunExecutedTests, testName)
-    end
-    for _, testName in ipairs(runInfo2.rerunInfo.executedTests or {}) do
-        table.insert(rerunExecutedTests, testName)
-    end
-
     local definedTests = {}
     for testName, testFunc in pairs(runInfo1.definedTests or {}) do
         definedTests[testName] = testFunc
     end
     for testName, testFunc in pairs(runInfo2.definedTests or {}) do
         definedTests[testName] = testFunc
-    end
-
-    local rerunDefinedTests = {}
-    for testName, testFunc in pairs(runInfo1.rerunInfo.definedTests or {}) do
-        rerunDefinedTests[testName] = testFunc
-    end
-    for testName, testFunc in pairs(runInfo2.rerunInfo.definedTests or {}) do
-        rerunDefinedTests[testName] = testFunc
     end
 
     local failedTests = {}
@@ -209,14 +197,39 @@ function report.CombineRunInfo(runInfo1, runInfo2, newName)
         passedTests[testName] = message
     end
 
+    -- rerun
+    local rerunExecutedTests = {}
+    for _, testName in ipairs(runInfo1.rerunInfo.executedTests or {}) do
+        table.insert(rerunExecutedTests, testName)
+    end
+    for _, testName in ipairs(runInfo2.rerunInfo.executedTests or {}) do
+        table.insert(rerunExecutedTests, testName)
+    end
+
+    local rerunDefinedTests = {}
+    for testName, testFunc in pairs(runInfo1.rerunInfo.definedTests or {}) do
+        rerunDefinedTests[testName] = testFunc
+    end
+    for testName, testFunc in pairs(runInfo2.rerunInfo.definedTests or {}) do
+        rerunDefinedTests[testName] = testFunc
+    end
+
     local rerunFailedTests = {}
     for testName, message in pairs(runInfo1.rerunInfo.failedTests or {}) do
         rerunFailedTests[testName] = message
     end
+    for testName, message in pairs(runInfo2.rerunInfo.failedTests or {}) do
+        rerunFailedTests[testName] = message
+    end
+
     local rerunPassedTests = {}
+    for testName, message in pairs(runInfo1.rerunInfo.passedTests or {}) do
+        rerunPassedTests[testName] = message
+    end
     for testName, message in pairs(runInfo2.rerunInfo.passedTests or {}) do
         rerunPassedTests[testName] = message
     end
+
 
     -- get the smallest startTime and the largest endTime
     runInfo1.startTime = runInfo1.startTime or os.time(os.date("!*t"))
@@ -265,6 +278,16 @@ function report.CombineRunInfo(runInfo1, runInfo2, newName)
     }
 
     runInfo.rerunInfo = rerunInfo
+
+    runInfo1.options = runInfo1.options or {}
+    runInfo2.options = runInfo2.options or {}
+    runInfo.options = {
+        stopOnFail       = runInfo1.options.stopOnFail or runInfo2.options.stopOnFail,
+        silent           = runInfo1.options.silent or runInfo2.options.silent,
+        rerunFailedTests = runInfo1.options.rerunFailedTests or runInfo2.options.rerunFailedTests,
+        sortedByName     = runInfo1.options.sortedByName or runInfo2.options.sortedByName
+    }
+
     return runInfo
 end
 
