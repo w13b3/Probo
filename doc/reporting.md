@@ -1,4 +1,4 @@
-# Probo reporting  <sub><sup>_Results of the test_<sup><sub>
+# Probo Reporting  <sub><sup>_Results of the test_<sup><sub>
 
 Sharing a report of the test result is a great way to show confidence in the software.
 

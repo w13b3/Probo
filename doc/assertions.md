@@ -1,4 +1,4 @@
-# Assertions <sub><sup>_can make the test fail_<sup><sub>
+# Probo Assertions <sub><sup>_Can make the test fail_<sup><sub>
 
 Assertions are used to check the state, result, type, etc... of some code.  
 If what was given was not expected, the test fails.
