@@ -583,7 +583,7 @@ Suite = setmetatable(Suite, Assert)  -- inherit from Assert
 function Suite.New(suiteName)
     local SuiteHook = function() end
     local instance = {
-        suiteName = suiteName or "Probo Suite",
+        suiteName = tostring(suiteName) or "Probo Suite",
         definedTests = {},  -- table containing the testcases defined in the suite
         --[[ Test hooks ]]
         SuiteSetup    = SuiteHook,  -- before all the tests
