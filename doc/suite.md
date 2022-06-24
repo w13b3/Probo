@@ -1,4 +1,4 @@
-# Probo Suite  <sub><sup>_Results of the test_<sup><sub>
+# Probo Suite  <sub><sup>_All about testing_<sup><sub>
 
 
 `suite.lua` is the heart of the framework.  
@@ -161,3 +161,69 @@ This function is invoked when a test passes.
 > `test:FailedHook()`
 
 This function is invoked when a test fails.
+
+
+###### Test hooks code example
+
+```lua
+local runInfo
+do
+    local test <close> = Suite.New("Hook example")
+    local assert <const> = test
+    
+    function test:SuiteSetup()
+        print("before the start of the test")
+    end
+    
+    function test:SuiteTeardown()
+        print("after all the tests are done")
+    end
+
+    function test:Setup()
+        print("before the test")
+    end
+
+    function test:Teardown()
+        print("after the test")
+    end
+
+    function test:PassedHook()
+        print("when a test is passed")
+    end
+    
+    function test:FailedHook()
+        print("when a test is failed")
+    end
+    
+    -- tests
+    
+    test("Test fail")
+    (function()
+        assert:Fail()
+    end)
+
+    test("Test pass")
+    (function()
+        assert:Pass()
+    end)
+    
+    -- run
+
+    runInfo = test:Run({
+        silent = true
+    })
+end
+```
+
+Console output by print as result of the example above.  
+
+```
+SuiteSetup: before the start of the test
+Setup: before any test
+FailedHook: when a test is failed
+Teardown: after any test
+Setup: before any test
+PassedHook: when a test is passed
+Teardown: after any test
+SuiteTeardown: after all the tests are done
+```
