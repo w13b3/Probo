@@ -11,7 +11,7 @@ do
     -- create a new test suite instance
     -- with <close> defined a garbage-collection cycle is performed at the end this scope
     local test <close> = Suite.New("Probo Suite example")
-    local assert = test -- more readable separation between tests and asserts
+    local assert <const> = test -- more readable separation between tests and asserts
 
     test.run = 1                        -- test suite variable
 
@@ -56,7 +56,7 @@ reportFile:close()
 ```
 
 ## Mock global functions
-The behaviour of functions can be changed temporarily.
+By mocking it is possible to temporarily change the behaviour of functions.
 
 ```lua
 local Suite = require("probo/suite")
@@ -87,7 +87,7 @@ Check out the [unit tests] that test the [Probo] unit test package.
 [Apache 2.0]
 
 
-[Lua 5.4]: https://www.lua.org/manual/5.4/
+[Lua 5.4]: https://www.lua.org/manual/5.4/ "Lua 5.4 Manual"
 [unit tests]: ./test/README.md "/test/README.md"
-[Probo]: ./probo/suite.lua "probo.lua"
-[Apache 2.0]: ./LICENSE.txt "LICENSE.txt"
+[Probo]: ./probo/suite.lua "Lua unit test framework"
+[Apache 2.0]: ./LICENSE "LICENSE"

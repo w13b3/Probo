@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Test Report</title>
+    <style>
+        table { border-collapse: collapse; border: 1px solid black; width: 800px; }
+        /*.table header cells */
+        table thead td { background-color: silver; padding-left: 3px }
+        /*.table header cells */
+        table tbody td { padding-left: 3px; }
+        /* Result colors */
+        .test-passed { background-color: green; }
+        .test-skipped { background-color: white; }
+        .test-failed { background-color: red; }
+        .describe-cell { background-color: tan; font-style: italic; }
+        .rerun-cell { background-color: lightgoldenrodyellow; font-style: italic; }
+    </style>
+</head>
+<body>
+<table class="test-report">
+    <thead>
+    <tr class="header-row">
+        <td>Test Suite</td>
+        <td>Test Case</td>
+        <td>Result</td>
+    </tr>
+    </thead>
+    <tbody>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">A test is invoked before Teardown and after Setup</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">FailedHook is invoked when the test has failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">FailedHook is not invoked when the test has passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">PassedHook is invoked when the test has passed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">PassedHook is not invoked when the test has failed</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">Setup is invoked</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">Setup is invoked before a test</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">SuiteSetup is invoked</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">SuiteSetup is invoked before every other hook and test</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">SuiteTeardown is invoked</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">SuiteTeardown is invoked after every other hook and test</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">Teardown is invoked</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    <tr class="step-row">
+        <td class="step-cell test-suite-name">probo_hooks_test</td>
+        <td class="step-cell test-case-name">Teardown is invoked after a test</td>
+        <td class="test-passed test-case-result">OK</td>
+    </tr>
+    </tbody>
+</table>
+<div class="test-run-info">
+    <div class="total-tests">Total tests 13.0</div>
+    <div class="total-passed">Total passed 13.0</div>
+    <div class="total-failed">Total failed 0.0</div>
+</div>
+</body>
+</html>
