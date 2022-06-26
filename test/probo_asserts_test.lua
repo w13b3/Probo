@@ -15,6 +15,7 @@
         Assert:Nil
         Assert:NotEqual
         Assert:NotNil
+        Assert:Pass
         Assert:TableEmpty
         Assert:TableEquals
         Assert:TableHasSameKeys
@@ -23,161 +24,274 @@
         Assert:Type
 ]]
 
--- extend `package.path` so it can look in the parent directory (where probo.lua resides)
+-- extend `package.path` so it can look in the parent directory
 package.path = ("%s;../?.lua"):format(package.path)
 -- add probo.lua to the script as `Suite`
 local Suite = require("probo/suite")
 local Report = require("probo/htmlreport")
+local Mock = require("probo/mock")
 
-local combinedReport = {}
+local runInfo, combinedReport = {}, {}
 local filename = "probo_asserts_test"      -- this file
 local silentTests = false                  -- true = no test output
-
-local runInfo, pass, failed, customErrMsg  -- test values 
-
-
--- error mock
--- this makes tests always pass but error"s return the error message
-local _error = error
-local suppress = setmetatable({},{  -- this metatable mocks the error
-    __call=(function()
-        error = function(message, level) return message, level end
-    end),
-    __close=(function()
-        error = _error  -- re-assign error
-    end),
-})
 
 
 --[[ test Assert:Condition ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:Condition(true)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:Condition(false)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:Condition(false, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:Condition")
         local assert <const> = test
 
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:Condition(true)
+            assert:True(resultPassed)
         end)
-    
-        test(([[%s failed]]):format(test.suiteName))
+
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:Condition(false)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
-    
-        test(([[%s with custom message]]):format(test.suiteName))
+
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:Condition(false, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
         end)
-    
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
+        end)
+
         runInfo = test:Run({
             silent=silentTests
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:CreatesError ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local _error = error  -- this error won't be mocked
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:CreatesError(_error)  -- unmocked error
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:CreatesError(function() end)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:CreatesError")
         local assert <const> = test
 
-        local throwError <const> = function(...) _error() end  -- unsuppressed
-        local wontError <const> = function(...) end
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:CreatesError(throwError)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:CreatesError(wontError)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        -- no custom error
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 1)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 1)
+        end)
 
         runInfo = test:Run({
             silent=silentTests
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:CreatesNoError ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local _error = error  -- this error won't be mocked
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:CreatesNoError(function() end)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:CreatesNoError(_error)  -- unmocked error
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:CreatesNoError")
         local assert <const> = test
 
-        local throwError <const> = function(...) _error() end  -- unsuppressed
-        local wontError <const> = function(...) end
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:CreatesNoError(wontError)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:CreatesNoError(throwError)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        -- no custom error
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 1)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 1)
+        end)
 
         runInfo = test:Run({
             silent=silentTests
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Equal ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:Equal(1, 1)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:Equal(1, 2)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:Equal(1, 2, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:Equal")
         local assert <const> = test
 
-        local actual <const> = "actual"
-        local expected <const> = "actual"
-        local wrong <const> = "wrong"
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:Equal(actual, expected)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:Equal(actual, wrong)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:Equal(actual, wrong, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -185,30 +299,61 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Fail ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("failed")
+        (function()
+            resultFailed = assert:Fail()
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:Fail(message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:Fail")
         local assert <const> = test
 
-        -- no need to test pass
-
-        test([[Assert:Fail ]])(function()
-            failed = assert:Fail()
+        test(("%s did fail as expected"):format(test.suiteName))
+        (function()
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:Fail("errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 0)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -216,34 +361,71 @@ do
         })
     end
 end
-
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:False ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:False(false)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:False(true)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:False(true, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:False")
         local assert <const> = test
 
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:False(false)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:False(true)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:False(true, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -251,37 +433,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Invokable ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:Invokable(function() end)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:Invokable(nil)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:Invokable(nil, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:Invokable")
         local assert <const> = test
 
-        local invokable <const> = function(...) end
-        local notInvokable <const> = true
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:Invokable(invokable)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:Invokable(notInvokable)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:Invokable(notInvokable, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -289,36 +505,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:Nil ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:Nil(nil)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:Nil("nil")
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:Nil("nil", message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:Nil")
         local assert <const> = test
 
-        local notNil <const> = (not nil)  -- true
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:Nil(nil)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:Nil(notNil)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:Nil(notNil, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -326,38 +577,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:NotEqual ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:NotEqual(1, 2)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:NotEqual(1, 1)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:NotEqual(1, 1, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:NotEqual")
         local assert <const> = test
 
-        local actual <const> = "actual"
-        local expected <const> = "wrong"
-        local wrong <const> = "actual"
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:NotEqual(actual, expected)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:NotEqual(actual, wrong)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:NotEqual(actual, wrong, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -365,36 +649,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:NotNil ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:NotNil("nil")
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:NotNil(nil)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:NotNil(nil, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:NotNil")
         local assert <const> = test
 
-        local notNil <const> = (not nil)  -- true
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:NotNil(notNil)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:NotNil(nil)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:NotNil(nil, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -402,37 +721,121 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
+combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
+
+
+--[[ test Assert:Pass ]]--
+runInfo = {}
+do
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:Pass()
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
+    do
+        local test <close> = Suite.New("Assert:Pass")
+        local assert <const> = test
+
+        test(("%s passed"):format(test.suiteName))
+        (function()
+            assert:True(resultPassed)
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 0)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 0)
+        end)
+
+        runInfo = test:Run({
+            silent=silentTests
+        })
+    end
+end
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableEmpty ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:TableEmpty( { } )
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:TableEmpty( { not {} } )  -- { false }
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:TableEmpty( { not {} }, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:TableEmpty")
         local assert <const> = test
 
-        local empty <const> = {}
-        local notEmpty <const> = {not {}}  -- {false}
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:TableEmpty(empty)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:TableEmpty(notEmpty)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:TableEmpty(notEmpty, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -440,38 +843,75 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
---[[ test Assert:TableEqual ]]--
+--[[ test Assert:TableEquals ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
     do
-        local test <close> = Suite.New("Assert:TableEqual")
+        local test <close> = Suite.New()
         local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
 
         local actual <const> = {["a"]="a", ["b"]="b", ["c"]={1, 2, 3}}
         local expected <const> = {["c"]={1, 2, 3}, ["a"]="a", ["b"]="b"}
         local wrong <const> = {["a"]="a", ["c"]={9, 8, 7}, ["b"]="b"}
 
-        test(([[%s passed]]):format(test.suiteName))
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
         (function()
-            pass = assert:TableEquals(actual, expected)
+            resultPassed = assert:TableEquals(actual, expected)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test("failed")
         (function()
-            failed = assert:TableEquals(actual, wrong)
+            resultFailed = assert:TableEquals(actual, wrong)  -- { false }
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test("custom message")
         (function()
-            customErrMsg = assert:TableEquals(actual, wrong, "errorMessage")
+            -- custom message is passed on to `error`
+            customMessage = assert:TableEquals(actual, wrong, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
+    do
+        local test <close> = Suite.New("Assert:TableEquals")
+        local assert <const> = test
+
+        test(("%s passed"):format(test.suiteName))
+        (function()
+            assert:True(resultPassed)
+        end)
+
+        test(("%s did fail as expected"):format(test.suiteName))
+        (function()
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
+        end)
+
+        test(("%s can have a custom error message"):format(test.suiteName))
+        (function()
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -479,38 +919,75 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableHasSameKeys ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
     do
-        local test <close> = Suite.New("Assert:TableHasSameKeys")
+        local test <close> = Suite.New()
         local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
 
         local same1 <const> = {["a"]=1, ["b"]=2, ["c"]=3}
         local same2 <const> = {["c"]=3, ["a"]=1, ["b"]=2, }
         local different <const> = {["a"]=1, ["b"]=2, ["c"]=3, ["d"]=4}
 
-        test(([[%s passed]]):format(test.suiteName))
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
         (function()
-            pass = assert:TableHasSameKeys(same1, same2)
+            resultPassed = assert:TableHasSameKeys(same1, same2)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test("failed")
         (function()
-            failed = assert:TableHasSameKeys(different, same1)
+            resultFailed = assert:TableHasSameKeys(same1, different)  -- { false }
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test("custom message")
         (function()
-            customErrMsg = assert:TableHasSameKeys(same2, different, "errorMessage")
+            -- custom message is passed on to `error`
+            customMessage = assert:TableHasSameKeys(same2, different, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
+    do
+        local test <close> = Suite.New("Assert:TableHasSameKeys")
+        local assert <const> = test
+
+        test(("%s passed"):format(test.suiteName))
+        (function()
+            assert:True(resultPassed)
+        end)
+
+        test(("%s did fail as expected"):format(test.suiteName))
+        (function()
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
+        end)
+
+        test(("%s can have a custom error message"):format(test.suiteName))
+        (function()
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -518,37 +995,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:TableNotEmpty ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:TableNotEmpty( { not {} } )
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:TableNotEmpty( {} )  -- { false }
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:TableNotEmpty( {}, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:TableNotEmpty")
         local assert <const> = test
 
-        local empty <const> = {}
-        local notEmpty <const> = {not {}}  -- {false}
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:TableNotEmpty(notEmpty)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:TableNotEmpty(empty)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:TableNotEmpty(empty, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -556,34 +1067,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 --[[ test Assert:True ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:True(true)
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:True(false)
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:True(false, message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:True")
         local assert <const> = test
 
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:True(true)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:True(false)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:True(false, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -591,38 +1139,71 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
---[[ test Assert:Type ]]--
+--[[ test Assert:False ]]--
 runInfo = {}
-pass, failed, customErrMsg = false, nil, nil
 do
-    local _ <close> = suppress()  -- do temporary mock `error` until end
+    local assertsPassed, assertsFailed, errorAmount = 0, 0, 0
+    local resultPassed, resultFailed, customMessage
+    local message = "customMessage"
+    do
+        local test <close> = Suite.New()
+        local assert <const> = test
+        local mock <close> = Mock.New()
+        -- mocked error returns the given input
+        -- Assert:AttemptFailed returns the `error`
+        mock("error", function(...) return ... end)
+
+        function test:SuiteTeardown()
+            assertsPassed = test.attemptsSuccess
+            assertsFailed = test.attemptsFailed
+            errorAmount = mock:Inspect("error").timesCalled
+        end
+
+        test("passed")
+        (function()
+            resultPassed = assert:Type(1, "number")
+        end)
+
+        test("failed")
+        (function()
+            resultFailed = assert:Type(1, "string")
+        end)
+
+        test("custom message")
+        (function()
+            -- custom message is passed on to `error`
+            customMessage = assert:Type(1, "string", message)
+        end)
+
+        test:Run({silent = true})  -- run the tests
+    end
     do
         local test <close> = Suite.New("Assert:Type")
         local assert <const> = test
 
-        local actual <const> = "actual"
-        local expected <const> = "string"
-        local wrong <const> = "number"
-
-        test(([[%s passed]]):format(test.suiteName))
+        test(("%s passed"):format(test.suiteName))
         (function()
-            pass = assert:Type(actual, expected)
+            assert:True(resultPassed)
         end)
 
-        test(([[%s failed]]):format(test.suiteName))
+        test(("%s did fail as expected"):format(test.suiteName))
         (function()
-            failed = assert:Type(actual, wrong)
+            assert:Type(resultFailed, "string")  -- mocked error returns the given input
         end)
 
-        test(([[%s with custom message]]):format(test.suiteName))
+        test(("%s can have a custom error message"):format(test.suiteName))
         (function()
-            customErrMsg = assert:Type(actual, wrong, "errorMessage")
+            assert:Equal(customMessage, message)  -- mocked error returns the given input
+        end)
+
+        test(("%s is invoked the expected amount of times"):format(test.suiteName))
+        (function()
+            assert:Equal(assertsPassed, 1)  -- amount of times the assert has passed
+            assert:Equal(assertsFailed, 2)  -- should be the same as `errorAmount`
+            assert:Equal(errorAmount, 2)
         end)
 
         runInfo = test:Run({
@@ -630,15 +1211,11 @@ do
         })
     end
 end
-assert((pass == true), "test that should pass has failed")
-assert((type(failed) == "string"), "error has not been thrown")
-assert((customErrMsg == "errorMessage"), "error message has not been custom")
 --combinedReport = Report.CombineRunInfo(combinedReport, runInfo)
 
 
 -- create the last combinedReport with the filename as name
 combinedReport = Report.CombineRunInfo(combinedReport, runInfo, filename)
-
 if not silentTests then
     -- this wont print if any `assert` has been triggered
     io.write(("%s passed\n"):format(filename))
